@@ -8,15 +8,11 @@ import br.com.antony.app.model.Usuario;
 public class UsuarioService {
 	private UsuarioDao dao = new UsuarioDao();
 
-	public void cadastrar(Usuario usuario) {
-		try {
-			if(dao.buscarPorEmail(usuario) != null) {
-				throw new Exception("Email já utilizado!");
-			}else {
-				dao.cadastrar(usuario);
-			}
-		} catch (Exception e) {
-			System.out.println("Erro ao cadastrar Usuário \n Erro: " + e.getMessage());
+	public void cadastrar(Usuario usuario) throws Exception {
+		if (dao.buscarPorEmail(usuario) != null) {
+			throw new Exception("Email já utilizado!");
+		} else {
+			dao.cadastrar(usuario);
 		}
 	}
 
@@ -31,8 +27,14 @@ public class UsuarioService {
 		return usuario;
 	}
 
-	public void atualizar(Usuario usuario) {
-		dao.atualizar(usuario);
+	public void atualizar(Usuario usuario) throws Exception {
+		Usuario usuarioBuscar = dao.buscarPorId(usuario.getId());
+		if(!usuarioBuscar.getEmail().equalsIgnoreCase(usuario.getEmail())) {
+			if (dao.buscarPorEmail(usuario) != null) {
+				throw new Exception("Email já utilizado!");
+			}
+		}
+		dao.atualizar(usuario);		
 	}
 
 	public void deletar(int id) {

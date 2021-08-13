@@ -2,14 +2,17 @@ package br.com.antony.app.controller;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import com.google.gson.Gson;
 
 import br.com.antony.app.model.Telefone;
 import br.com.antony.app.model.Usuario;
@@ -26,30 +29,37 @@ public class UsuarioController extends HttpServlet {
 		super();
 		service = new UsuarioService();
 	}
-
+	
+	
 	protected void doGet(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
+		
+		Map<String, Object> map = new HashMap<String, Object>();
 
-		String forward = "";
 		String action = request.getParameter("action");
+		
+		if(action.equalsIgnoreCase("editar")) {
+			String id = request.getParameter("usuarioId");
+			Usuario usuario = service.buscarPorId(Integer.parseInt(id));
+			map.put("usuario", usuario);
+			write(response, map);
+		}
 
 		if (action.equalsIgnoreCase("lista")) {
-			request.setAttribute("usuarios", service.buscarTodos());
-			forward = "/lista.jsp";
-		}else if (action.equalsIgnoreCase("editar")) {
-			int id = Integer.parseInt(request.getParameter("usuarioId"));
-			Usuario usuario = service.buscarPorId(id);
-			request.setAttribute("usuario", usuario);
-			forward = "/form.jsp";
-		}else if (action.equalsIgnoreCase("deletar")) {
+			List<Usuario> usuarios =  service.buscarTodos();
+			map.put("usuarios", usuarios);
+			write(response, map);
+		}
+		if(action.equalsIgnoreCase("deletar")) {
 			int id = Integer.parseInt(request.getParameter("usuarioId"));
 			service.deletar(id);
-			request.setAttribute("usuarios", service.buscarTodos());
-			forward = "/lista.jsp";
 		}
-		
-		RequestDispatcher view = request.getRequestDispatcher(forward);
-		view.forward(request, response);
+	}
+
+	private void write(HttpServletResponse response, Map<String, Object> map) throws IOException {
+		response.setContentType("application/json");
+		response.setCharacterEncoding("UTF-8");
+		response.getWriter().write(new Gson().toJson(map));	
 	}
 
 	protected void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -75,15 +85,25 @@ public class UsuarioController extends HttpServlet {
 		List<Telefone> telefones = Arrays.asList(telefone1, telefone2);
 		usuario.setTelefones(telefones);
 		
-		if(id == null || id.isEmpty()) {
-			service.cadastrar(usuario);
+		if(id == null || id.equals("")) {
+			Map<String, Object> map = new HashMap<String, Object>();
+			try {
+				service.cadastrar(usuario);
+			} catch (Exception e) {
+				response.setStatus(400);
+				response.getWriter().write(e.getMessage());
+			}
+			write(response, map);
 		}else {
+			Map<String, Object> map = new HashMap<String, Object>();
 			usuario.setId(Integer.parseInt(id));
-			service.atualizar(usuario);
+			try {
+				service.atualizar(usuario);
+			} catch (Exception e) {
+				response.setStatus(400);
+				response.getWriter().write(e.getMessage());
+			}
+			write(response, map);
 		}
-		RequestDispatcher view = request.getRequestDispatcher("/lista.jsp");
-		List<Usuario> usuarios = service.buscarTodos();
-		request.setAttribute("usuarios", usuarios);
-		view.forward(request, response);
 	}
 }
